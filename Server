@@ -1,0 +1,111 @@
+-- Server Script inside ServerScriptService
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+-- Create Remote Events in ReplicatedStorage for FE communication
+local ChewEvent = Instance.new("RemoteEvent")
+ChewEvent.Name = "ChewEvent"
+ChewEvent.Parent = ReplicatedStorage
+
+local BuyGumEvent = Instance.new("RemoteEvent")
+BuyGumEvent.Name = "BuyGumEvent"
+BuyGumEvent.Parent = ReplicatedStorage
+
+-- Database of upgradable gums [Name] = {Cost, SpeedMultiplier, Color}
+local GumUpgrades = {
+	["Blueberry Pop"] = {Cost = 0, Multiplier = 1, Color = Color3.fromRGB(85, 170, 255)},
+	["Strawberry Burst"] = {Cost = 50, Multiplier = 2, Color = Color3.fromRGB(255, 85, 127)},
+	["Grape Fusion"] = {Cost = 250, Multiplier = 5, Color = Color3.fromRGB(170, 85, 255)},
+	["Hyper Neon"] = {Cost = 1000, Multiplier = 12, Color = Color3.fromRGB(85, 255, 127)}
+}
+
+-- Handle player joining and loading Leaderstats
+Players.PlayerAdded:Connect(function(player)
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+	leaderstats.Parent = player
+
+	local coins = Instance.new("IntValue")
+	coins.Name = "Coins"
+	coins.Value = 0
+	coins.Parent = leaderstats
+
+	-- Keep track of current gum data hidden from leaderstats
+	local currentGum = Instance.new("StringValue")
+	currentGum.Name = "CurrentGum"
+	currentGum.Value = "Blueberry Pop"
+	currentGum.Parent = player
+	
+	local speedMult = Instance.new("NumberValue")
+	speedMult.Name = "SpeedMultiplier"
+	speedMult.Value = 1
+	speedMult.Parent = player
+end)
+
+-- FE Function: Triggered when player clicks to blow bubble gum
+ChewEvent.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	if not character or not character:FindFirstChild("Head") then return end
+	
+	local multiplier = player:FindFirstChild("SpeedMultiplier") and player.SpeedMultiplier.Value or 1
+	local coins = player.leaderstats.Coins
+	
+	-- Award coins based on their gum multiplier
+	coins.Value = coins.Value + (1 * multiplier)
+
+	-- FE Visual Effect: Build the physical gum bubble on the player's face safely
+	local head = character.Head
+	local existingBubble = head:FindFirstChild("GumBubble")
+	if existingBubble then existingBubble:Destroy() end
+
+	local bubble = Instance.new("Part")
+	bubble.Name = "GumBubble"
+	bubble.Shape = Enum.PartType.Ball
+	bubble.Material = Enum.Material.Glass
+	bubble.Transparency = 0.3
+	bubble.CanCollide = false
+	bubble.Massless = true
+	
+	-- Color match based on what gum they currently chew
+	local gumType = player.CurrentGum.Value
+	bubble.Color = GumUpgrades[gumType] and GumUpgrades[gumType].Color or Color3.fromRGB(255, 170, 255)
+	
+	-- Weld bubble precisely onto the player's head mouth area
+	local weld = Instance.new("WeldConstraint")
+	bubble.Position = head.Position + (head.CFrame.LookVector * 0.6)
+	bubble.Size = Vector3.new(0.2, 0.2, 0.2)
+	bubble.Parent = head
+	
+	weld.Part0 = head
+	weld.Part1 = bubble
+	weld.Parent = bubble
+
+	-- Tween animation to expand and pop the bubble
+	local targetSize = math.clamp(0.2 * multiplier, 0.5, 3.5)
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+	local growTween = TweenService:Create(bubble, tweenInfo, {Size = Vector3.new(targetSize, targetSize, targetSize)})
+	
+	growTween:Play()
+	
+	task.delay(0.4, function()
+		if bubble and bubble.Parent then
+			bubble:Destroy() -- Pop!
+		end
+	end)
+end)
+
+-- FE Function: Triggered safely when clicking the UI shop buttons
+BuyGumEvent.OnServerInvoke = function(player, requestedGum)
+	local coins = player.leaderstats.Coins
+	local gumData = GumUpgrades[requestedGum]
+	
+	if gumData and coins.Value >= gumData.Cost then
+		-- Deduct coins and update server data values securely
+		coins.Value = coins.Value - gumData.Cost
+		player.CurrentGum.Value = requestedGum
+		player.SpeedMultiplier.Value = gumData.Multiplier
+		return true -- Purchase successful
+	end
+	return false -- Not enough coins
+end
