@@ -1,0 +1,109 @@
+-- LocalScript inside StarterGui
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ChewEvent = ReplicatedStorage:WaitForChild("ChewEvent")
+local BuyGumEvent = ReplicatedStorage:WaitForChild("BuyGumEvent")
+
+-- 1. Setup Screen GUI Framework
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BubbleGumHUD"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- Simple background shop menu structure
+local ShopPanel = Instance.new("Frame")
+ShopPanel.Name = "ShopPanel"
+ShopPanel.Size = UDim2.new(0, 280, 0, 320)
+ShopPanel.Position = UDim2.new(0.5, -140, 0.5, -160)
+ShopPanel.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+ShopPanel.Visible = false -- Hidden by default
+ShopPanel.Parent = ScreenGui
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 15)
+UICorner.Parent = ShopPanel
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "GUM SHOP"
+Title.Font = Enum.Font.FredokaOne
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 22
+Title.BackgroundTransparency = 1
+Title.Parent = ShopPanel
+
+-- UI Layout for list of upgrades inside shop
+local ListLayout = Instance.new("UIListLayout")
+ListLayout.Padding = UDim.new(0, 8)
+ListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+ListLayout.Parent = ShopPanel
+
+-- Main HUD interaction buttons mimicking original layouts
+local MainMenu = Instance.new("Frame")
+MainMenu.Size = UDim2.new(0, 90, 0, 90)
+MainMenu.Position = UDim2.new(0, 20, 0.5, -45)
+MainMenu.BackgroundTransparency = 1
+MainMenu.Parent = ScreenGui
+
+local ShopToggleBtn = Instance.new("TextButton")
+ShopToggleBtn.Size = UDim2.new(1, 0, 1, 0)
+ShopToggleBtn.Text = "SHOP"
+ShopToggleBtn.Font = Enum.Font.FredokaOne
+ShopToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShopToggleBtn.BackgroundColor3 = Color3.fromRGB(255, 60, 120)
+ShopToggleBtn.TextSize = 18
+ShopToggleBtn.Parent = MainMenu
+Instance.new("UICorner", ShopToggleBtn).CornerRadius = UDim.new(0, 12)
+
+-- Toggle Shop display state
+ShopToggleBtn.MouseButton1Click:Connect(function()
+	ShopPanel.Visible = not ShopPanel.Visible
+end)
+
+-- Helper to quickly generate buy entries into our menu
+local function createShopItem(name, cost, layoutOrder)
+	local itemBtn = Instance.new("TextButton")
+	itemBtn.Size = UDim2.new(0, 240, 0, 50)
+	itemBtn.Text = name .. " (" .. cost .. " Coins)"
+	itemBtn.Font = Enum.Font.FredokaOne
+	itemBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	itemBtn.BackgroundColor3 = Color3.fromRGB(45, 180, 100)
+	itemBtn.TextSize = 14
+	itemBtn.LayoutOrder = layoutOrder
+	itemBtn.Parent = ShopPanel
+	Instance.new("UICorner", itemBtn).CornerRadius = UDim.new(0, 8)
+	
+	itemBtn.MouseButton1Click:Connect(function()
+		-- Fire to server using secure Remote Functions
+		local success = BuyGumEvent:InvokeServer(name)
+		if success then
+			itemBtn.Text = name .. " (OWNED)"
+			itemBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 110)
+		else
+			itemBtn.Text = "NOT ENOUGH COINS!"
+			task.wait(1)
+			itemBtn.Text = name .. " (" .. cost .. " Coins)"
+		end
+	end)
+end
+
+-- Generate list items to buy inside UI
+createShopItem("Strawberry Burst", 50, 1)
+createShopItem("Grape Fusion", 250, 2)
+createShopItem("Hyper Neon", 1000, 3)
+
+-- 2. Detect global click actions anywhere across game windows to blow gum bubble
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	-- Ignore clicks if the player is typing inside text chat or shop buttons
+	if gameProcessed then return end
+	
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		-- Fire the request safely up to the server
+		ChewEvent:FireServer()
+	end
+end)
