@@ -1,0 +1,277 @@
+-- LocalScript inside StarterGui
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ChewEvent = ReplicatedStorage:WaitForChild("ChewEvent")
+local BuyGumEvent = ReplicatedStorage:WaitForChild("BuyGumEvent")
+local RebirthEvent = ReplicatedStorage:WaitForChild("RebirthEvent")
+
+-- Create Clean Modern Canvas Hierarchy
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SuperGumHUD"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- Modern Clean Styling Helper Functions
+local function applyGlowBorder(parent, color, thickness)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color or Color3.fromRGB(0, 210, 255)
+	stroke.Thickness = thickness or 2.5
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = parent
+end
+
+local function addSmoothRounding(parent, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius or 14)
+	corner.Parent = parent
+end
+
+local function applyLinearGradient(parent, colorsTable)
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new(colorsTable)
+	gradient.Rotation = 45
+	gradient.Parent = parent
+end
+
+-- ==========================================
+-- 1. TOP CENTER DYNAMIC PROGRESS BAR FRAME
+-- ==========================================
+local ProgressTrack = Instance.new("Frame")
+ProgressTrack.Name = "ProgressTrack"
+ProgressTrack.Size = UDim2.new(0, 360, 0, 32)
+ProgressTrack.Position = UDim2.new(0.5, -180, 0, 25)
+ProgressTrack.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+ProgressTrack.Parent = ScreenGui
+addSmoothRounding(ProgressTrack, 8)
+applyGlowBorder(ProgressTrack, Color3.fromRGB(40, 40, 50), 2)
+
+local ProgressBar = Instance.new("Frame")
+ProgressBar.Name = "ProgressBar"
+ProgressBar.Size = UDim2.new(0.1, 0, 1, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ProgressBar.Parent = ProgressTrack
+addSmoothRounding(ProgressBar, 8)
+applyLinearGradient(ProgressBar, {
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 127)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 110, 180))
+})
+
+local ProgressText = Instance.new("TextLabel")
+ProgressText.Size = UDim2.new(1, 0, 1, 0)
+ProgressText.BackgroundTransparency = 1
+ProgressText.Text = "Chews: 0 / 500"
+ProgressText.Font = Enum.Font.FredokaOne
+ProgressText.TextColor3 = Color3.fromRGB(255, 255, 255)
+ProgressText.TextSize = 14
+ProgressText.TextStrokeTransparency = 0.5
+ProgressText.Parent = ProgressTrack
+
+-- ==========================================
+-- 2. DYNAMIC POPPING POPUP TEXT EFFECT
+-- ==========================================
+local function triggerGreatPopup()
+	local popup = Instance.new("TextLabel")
+	popup.Size = UDim2.new(0, 200, 0, 50)
+	-- Random placement around center zone
+	popup.Position = UDim2.new(0.5, math.random(-150, 50), 0.4, math.random(-80, 80))
+	popup.BackgroundTransparency = 1
+	popup.Text = "GREAT!"
+	popup.Font = Enum.Font.FredokaOne
+	popup.TextSize = 34
+	popup.TextColor3 = Color3.fromRGB(255, 235, 60)
+	popup.Parent = ScreenGui
+	applyGlowBorder(popup, Color3.fromRGB(0,0,0), 3)
+
+	-- Floating Zoom Effect
+	popup:TweenSizeAndPosition(
+		UDim2.new(0, 240, 0, 60),
+		popup.Position - UDim2.new(0, 0, 0, 60),
+		Enum.EasingDirection.Out,
+		Enum.EasingStyle.Back,
+		0.3,
+		true
+	)
+	
+	task.delay(0.35, function()
+		popup:Destroy()
+	end)
+end
+
+-- ==========================================
+-- 3. SIDE-MENU ACTION BAR CONTROLS
+-- ==========================================
+local ButtonBar = Instance.new("Frame")
+ButtonBar.Size = UDim2.new(0, 200, 0, 90)
+ButtonBar.Position = UDim2.new(0, 25, 0.5, -45)
+ButtonBar.BackgroundTransparency = 1
+ButtonBar.Parent = ScreenGui
+
+local Grid = Instance.new("UIListLayout")
+Grid.FillDirection = Enum.FillDirection.Horizontal
+Grid.Padding = UDim.new(0, 15)
+Grid.Parent = ButtonBar
+
+-- High Polish Shop Button
+local ShopBtn = Instance.new("TextButton")
+ShopBtn.Size = UDim2.new(0, 85, 0, 85)
+ShopBtn.Text = "SHOP"
+ShopBtn.Font = Enum.Font.FredokaOne
+ShopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShopBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ShopBtn.TextSize = 16
+ShopBtn.Parent = ButtonBar
+addSmoothRounding(ShopBtn, 16)
+applyGlowBorder(ShopBtn, Color3.fromRGB(255, 45, 115), 3)
+applyLinearGradient(ShopBtn, {
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 45, 115)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 15, 70))
+})
+
+-- High Polish Rebirth Button
+local RebirthBtn = Instance.new("TextButton")
+RebirthBtn.Size = UDim2.new(0, 85, 0, 85)
+RebirthBtn.Text = "REBIRTH"
+RebirthBtn.Font = Enum.Font.FredokaOne
+RebirthBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RebirthBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+RebirthBtn.TextSize = 14
+RebirthBtn.Parent = ButtonBar
+addSmoothRounding(RebirthBtn, 16)
+applyGlowBorder(RebirthBtn, Color3.fromRGB(140, 45, 255), 3)
+applyLinearGradient(RebirthBtn, {
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 45, 255)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(75, 10, 160))
+})
+
+-- ==========================================
+-- 4. 100x COOLER CYBER/NEON SHOP PANEL
+-- ==========================================
+local ShopPanel = Instance.new("Frame")
+ShopPanel.Name = "NeonShop"
+ShopPanel.Size = UDim2.new(0, 340, 0, 380)
+ShopPanel.Position = UDim2.new(0.5, -170, 0.5, -190)
+ShopPanel.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+ShopPanel.Visible = false
+ShopPanel.Parent = ScreenGui
+addSmoothRounding(ShopPanel, 20)
+applyGlowBorder(ShopPanel, Color3.fromRGB(0, 215, 255), 3)
+
+-- Backdrop Ambient Contrast Shadow
+local Shadow = Instance.new("Frame", ShopPanel)
+Shadow.Size = UDim2.new(1, 8, 1, 8)
+Shadow.Position = UDim2.new(0, -4, 0, -4)
+Shadow.BackgroundColor3 = Color3.fromRGB(0, 160, 255)
+Shadow.BackgroundTransparency = 0.88
+Shadow.ZIndex = 0
+addSmoothRounding(Shadow, 24)
+
+local ShopTitle = Instance.new("TextLabel")
+ShopTitle.Size = UDim2.new(1, 0, 0, 55)
+ShopTitle.Text = "NEON UPGRADES"
+ShopTitle.Font = Enum.Font.FredokaOne
+ShopTitle.TextColor3 = Color3.fromRGB(0, 235, 255)
+ShopTitle.TextSize = 24
+ShopTitle.BackgroundTransparency = 1
+ShopTitle.Parent = ShopPanel
+
+local Container = Instance.new("ScrollingFrame")
+Container.Size = UDim2.new(1, -30, 1, -80)
+Container.Position = UDim2.new(0, 15, 0, 65)
+Container.BackgroundTransparency = 1
+Container.CanvasSize = UDim2.new(0, 0, 0, 400)
+Container.ScrollBarThickness = 4
+Container.Parent = ShopPanel
+
+local List = Instance.new("UIListLayout")
+List.Padding = UDim.new(0, 10)
+List.Parent = Container
+
+-- Helper function to generate premium rows in shop
+local function addUpgradeRow(name, cost)
+	local row = Instance.new("Frame")
+	row.Size = UDim2.new(1, -5, 0, 60)
+	row.BackgroundColor3 = Color3.fromRGB(22, 24, 35)
+	row.Parent = Container
+	addSmoothRounding(row, 10)
+	applyGlowBorder(row, Color3.fromRGB(40, 45, 65), 1.5)
+	
+	local lbl = Instance.new("TextLabel")
+	lbl.Size = UDim2.new(0.6, 0, 1, 0)
+	lbl.Position = UDim2.new(0, 12, 0, 0)
+	lbl.Text = name .. "\nCost: " .. cost
+	lbl.Font = Enum.Font.FredokaOne
+	lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+	lbl.TextSize = 14
+	lbl.TextXAlignment = Enum.TextXAlignment.Left
+	lbl.BackgroundTransparency = 1
+	lbl.Parent = row
+
+	local buy = Instance.new("TextButton")
+	buy.Size = UDim2.new(0.35, 0, 0.7, 0)
+	buy.Position = UDim2.new(0.62, 0, 0.15, 0)
+	buy.Text = "BUY"
+	buy.Font = Enum.Font.FredokaOne
+	buy.TextColor3 = Color3.fromRGB(255, 255, 255)
+	buy.BackgroundColor3 = Color3.fromRGB(0, 190, 110)
+	buy.Parent = row
+	addSmoothRounding(buy, 8)
+
+	buy.MouseButton1Click:Connect(function()
+		local success = BuyGumEvent:InvokeServer(name)
+		if success then
+			buy.Text = "EQUIPPED"
+			buy.BackgroundColor3 = Color3.fromRGB(60, 65, 75)
+		else
+			buy.Text = "ERROR"
+			task.wait(0.8)
+			buy.Text = "BUY"
+		end
+	end)
+end
+
+addUpgradeRow("Strawberry Burst", 50)
+addUpgradeRow("Grape Fusion", 250)
+addUpgradeRow("Hyper Neon", 1000)
+
+-- ==========================================
+-- 5. FUNCTIONAL LOOPS & CLICK TRACKERS
+-- ==========================================
+ShopBtn.MouseButton1Click:Connect(function() ShopPanel.Visible = not ShopPanel.Visible end)
+
+RebirthBtn.MouseButton1Click:Connect(function()
+	local success = RebirthEvent:InvokeServer()
+	if success then
+		triggerGreatPopup()
+	end
+end)
+
+-- Detect Global Screen Taps
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		ChewEvent:FireServer()
+		if math.random(1, 4) == 2 then
+			triggerGreatPopup() -- 25% chance of spawning pop-up feedback message text on click
+		end
+	end
+end)
+
+-- Real-time Progression Interface Tracker Bar Loop
+task.spawn(function()
+	while task.wait(0.1) do
+		local chewsVal = LocalPlayer:FindFirstChild("Chews") and LocalPlayer.Chews.Value or 0
+		local rebirthsVal = LocalPlayer.leaderstats:FindFirstChild("Rebirths") and LocalPlayer.leaderstats.Rebirths.Value or 0
+		
+		local nextTargetCost = (rebirthsVal + 1) * 500
+		ProgressText.Text = "Chews Needed for Rebirth: " .. chewsVal .. " / " .. nextTargetCost
+		
+		-- Smoothly update progression bar scale
+		local pct = math.clamp(chewsVal / nextTargetCost, 0, 1)
+		TweenService:Create(ProgressBar, TweenInfo.new(0.1), {Size = UDim2.new(pct, 0, 1, 0)}):Play()
+	end
+end)
