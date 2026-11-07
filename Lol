@@ -1,0 +1,26 @@
+-- Create the ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FollowGui"
+screenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+-- Create the TextLabel
+local textLabel = Instance.new("TextLabel")
+textLabel.Name = "FollowText"
+textLabel.Size = UDim2.new(0, 300, 0, 50)
+textLabel.Position = UDim2.new(0.5, -150, 0.1, 0) -- Top center of the screen
+textLabel.Text = "follow @roblox"
+textLabel.TextSize = 24
+textLabel.Font = Enum.Font.SourceSansBold
+
+-- Style: Pastel Blue Text
+textLabel.TextColor3 = Color3.fromRGB(174, 214, 241) 
+
+-- Style: Black Outlining
+textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+textLabel.TextStrokeTransparency = 0 -- Fully visible outline
+
+-- Background settings (Transparent)
+textLabel.BackgroundTransparency = 1
+
+-- Parent the label to the GUI
+textLabel.Parent = screenGui
