@@ -1,0 +1,156 @@
+-- Server Script inside ServerScriptService
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+local ChewEvent = ReplicatedStorage:FindFirstChild("ChewEvent") or Instance.new("RemoteEvent", ReplicatedStorage)
+ChewEvent.Name = "ChewEvent"
+
+local BuyGumEvent = ReplicatedStorage:FindFirstChild("BuyGumEvent") or Instance.new("RemoteFunction", ReplicatedStorage)
+BuyGumEvent.Name = "BuyGumEvent"
+
+local RebirthEvent = ReplicatedStorage:FindFirstChild("RebirthEvent") or Instance.new("RemoteFunction", ReplicatedStorage)
+RebirthEvent.Name = "RebirthEvent"
+
+local GumUpgrades = {}
+local flavors = {"Minty", "Strawberry", "Blueberry", "Grape", "Watermelon", "Cotton Candy", "Chrono Cosmic", "Nuclear Neon", "Void Shard", "Nebula"}
+local colorPalettes = {
+	Color3.fromRGB(85, 255, 255), Color3.fromRGB(255, 85, 127), Color3.fromRGB(85, 170, 255),
+	Color3.fromRGB(170, 85, 255), Color3.fromRGB(85, 255, 127), Color3.fromRGB(255, 170, 255),
+	Color3.fromRGB(255, 210, 60), Color3.fromRGB(255, 100, 40), Color3.fromRGB(140, 45, 255),
+	Color3.fromRGB(45, 255, 190)
+}
+
+for i = 1, 100 do
+	local flavorBase = flavors[((i-1) % #flavors) + 1]
+	local suffix = i <= 20 and " Chew" or i <= 50 and " Burst" or i <= 80 and " Nova" or " Singularity"
+	local name = "Tier " .. i .. ": " .. flavorBase .. suffix
+	
+	GumUpgrades[name] = {
+		Cost = math.floor(30 * math.pow(i, 2.3)),
+		Multiplier = math.floor(1 * math.pow(i, 1.8)),
+		Color = colorPalettes[((i-1) % #colorPalettes) + 1]
+	}
+end
+
+local CatalogFolder = ReplicatedStorage:FindFirstChild("GumCatalog") or Instance.new("Folder", ReplicatedStorage)
+CatalogFolder.Name = "GumCatalog"
+for name, data in pairs(GumUpgrades) do
+	if not CatalogFolder:FindFirstChild(name) then
+		local config = Instance.new("Configuration", CatalogFolder)
+		config.Name = name
+		local cVal = Instance.new("IntValue", config); cVal.Name = "Cost"; cVal.Value = data.Cost
+		local mVal = Instance.new("IntValue", config); mVal.Name = "Multiplier"; mVal.Value = data.Multiplier
+		local clVal = Instance.new("Color3Value", config); clVal.Name = "Color"; clVal.Value = data.Color
+	end
+end
+
+Players.PlayerAdded:Connect(function(player)
+	local leaderstats = Instance.new("Folder", player)
+	leaderstats.Name = "leaderstats"
+
+	local coins = Instance.new("IntValue", leaderstats)
+	coins.Name = "Coins"
+	coins.Value = 100 -- Giving 100 starting coins to test buying immediately
+
+	local rebirths = Instance.new("IntValue", leaderstats)
+	rebirths.Name = "Rebirths"
+	rebirths.Value = 0
+
+	local chews = Instance.new("IntValue", player)
+	chews.Name = "Chews"
+	chews.Value = 0
+
+	local currentGum = Instance.new("StringValue", player)
+	currentGum.Name = "CurrentGum"
+	currentGum.Value = "Tier 1: Minty Chew"
+	
+	local speedMult = Instance.new("NumberValue", player)
+	speedMult.Name = "SpeedMultiplier"
+	speedMult.Value = 1
+end)
+
+ChewEvent.OnServerEvent:Connect(function(player)
+	local character = player.Character
+	if not character then return end
+	-- Safely find head without crashing if streaming is slow
+	local head = character:FindFirstChild("Head") or character:WaitForChild("Head", 5)
+	if not head then return end
+	
+	local multiplier = player:FindFirstChild("SpeedMultiplier") and player.SpeedMultiplier.Value or 1
+	local rebirthMultiplier = (player.leaderstats:FindFirstChild("Rebirths") and player.leaderstats.Rebirths.Value or 0) + 1
+	
+	player.Chews.Value = player.Chews.Value + (1 * multiplier * rebirthMultiplier)
+	player.leaderstats.Coins.Value = player.leaderstats.Coins.Value + (2 * multiplier * rebirthMultiplier)
+
+	local existingBubble = head:FindFirstChild("GumBubble")
+	if existingBubble then existingBubble:Destroy() end
+
+	local bubble = Instance.new("Part")
+	bubble.Name = "GumBubble"
+	bubble.Shape = Enum.PartType.Ball
+	bubble.Material = Enum.Material.Glass
+	bubble.Transparency = 0.25
+	bubble.CanCollide = false
+	bubble.Massless = true
+	
+	local gumType = player.CurrentGum.Value
+	bubble.Color = GumUpgrades[gumType] and GumUpgrades[gumType].Color or Color3.fromRGB(255, 170, 255)
+	bubble.Parent = head
+
+	local weld = Instance.new("Weld")
+	weld.Name = "BubbleWeld"
+	weld.Part0 = head
+	weld.Part1 = bubble
+	weld.C0 = CFrame.new(0, -0.35, -0.95) 
+	weld.Parent = bubble
+
+	local baseScale = math.clamp((player.Chews.Value * 0.03), 0.3, 3.2)
+	
+	local rand = math.random(1, 15)
+	if rand == 7 then
+		baseScale = 4.8
+		weld.C0 = CFrame.new(0, -0.35, -1.5)
+	end
+
+	bubble.Size = Vector3.new(0.05, 0.05, 0.05)
+	local growTween = TweenService:Create(bubble, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = Vector3.new(baseScale, baseScale, baseScale)})
+	growTween:Play()
+	
+	task.delay(0.32, function()
+		if bubble and bubble.Parent then bubble:Destroy() end
+	end)
+end)
+
+BuyGumEvent.OnServerInvoke = function(player, requestedGum)
+	local coins = player.leaderstats.Coins
+	local targetFolder = CatalogFolder:FindFirstChild(requestedGum)
+	if not targetFolder then return false end
+	
+	local cost = targetFolder.Cost.Value
+	local mult = targetFolder.Multiplier.Value
+	
+	if coins.Value >= cost then
+		coins.Value = coins.Value - cost
+		player.CurrentGum.Value = requestedGum
+		player.SpeedMultiplier.Value = mult
+		return true
+	end
+	return false
+end
+
+RebirthEvent.OnServerInvoke = function(player)
+	local chews = player.Chews
+	local currentRebirths = player.leaderstats.Rebirths
+	local costToRebirth = (currentRebirths.Value + 1) * 500
+	
+	if chews.Value >= costToRebirth then
+		chews.Value = 0
+		currentRebirths.Value = currentRebirths.Value + 1
+		player.leaderstats.Coins.Value = 0
+		player.CurrentGum.Value = "Tier 1: Minty Chew"
+		player.SpeedMultiplier.Value = 1
+		return true
+	end
+	return false
+end
