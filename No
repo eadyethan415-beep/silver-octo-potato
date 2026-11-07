@@ -1,0 +1,133 @@
+-- Roblox LocalScript inside StarterGui
+-- Recreates a stylized cartoon UI layout inspired by the reference image
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- 1. Create the Main ScreenGui Container
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GameHUD"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- Helper function to apply a bold cartoon stroke/border
+local function addStroke(parent, color, thickness)
+	local uiStroke = Instance.new("UIStroke")
+	local colorHex = color or Color3.fromRGB(0, 0, 0)
+	uiStroke.Color = colorHex
+	uiStroke.Thickness = thickness or 3
+	uiStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	uiStroke.Parent = parent
+	return uiStroke
+end
+
+-- Helper function to add smooth rounded corners
+local function addCorners(parent, radius)
+	local uiCorner = Instance.new("UICorner")
+	uiCorner.CornerRadius = UDim.new(0, radius or 8)
+	uiCorner.Parent = parent
+	return uiCorner
+end
+
+-- Helper function to add a colorful gradient background
+local function addGradient(parent, startColor, endColor)
+	local uiGradient = Instance.new("UIGradient")
+	uiGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, startColor),
+		ColorSequenceKeypoint.new(1, endColor)
+	})
+	uiGradient.Rotation = 90
+	uiGradient.Parent = parent
+	return uiGradient
+end
+
+-- Helper function to create interactive, animated buttons
+local function createGridButton(name, text, startColor, endColor, parent)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(0, 75, 0, 75)
+	button.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	button.Text = text
+	button.Font = Enum.Font.FredokaOne -- Bold, cartoon font matching the style
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextSize = 16
+	button.TextStrokeTransparency = 0 -- Gives a crisp drop-shadow text look
+	button.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+	button.Parent = parent
+	
+	addCorners(button, 12)
+	addStroke(button, Color3.fromRGB(0, 0, 0), 3)
+	addGradient(button, startColor, endColor)
+	
+	-- Adding a light inner glow/highlight effect to top-border area
+	local highlight = Instance.new("Frame")
+	highlight.Name = "Glow"
+	highlight.Size = UDim2.new(1, 0, 0, 6)
+	highlight.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	highlight.BackgroundTransparency = 0.4
+	highlight.BorderSizePixel = 0
+	highlight.Parent = button
+	addCorners(highlight, 4)
+
+	-- Smooth Hover and Click Animations
+	button.MouseEnter:Connect(function()
+		button:TweenSize(UDim2.new(0, 80, 0, 80), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.1, true)
+	end)
+	
+	button.MouseLeave:Connect(function()
+		button:TweenSize(UDim2.new(0, 75, 0, 75), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.1, true)
+	end)
+	
+	button.MouseButton1Down:Connect(function()
+		button:TweenSize(UDim2.new(0, 70, 0, 70), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.05, true)
+	end)
+	
+	button.MouseButton1Up:Connect(function()
+		button:TweenSize(UDim2.new(0, 80, 0, 80), Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.05, true)
+	end)
+	
+	return button
+end
+
+-- 2. Left Menu Side Layout Frame
+local LeftMenuFrame = Instance.new("Frame")
+LeftMenuFrame.Name = "LeftMenuGrid"
+LeftMenuFrame.Position = UDim2.new(0, 20, 0.5, -85) -- Centered vertically on left edge
+LeftMenuFrame.Size = UDim2.new(0, 160, 0, 160)
+LeftMenuFrame.BackgroundTransparency = 1 -- Hidden background framework
+LeftMenuFrame.Parent = ScreenGui
+
+local UIGridLayout = Instance.new("UIGridLayout")
+UIGridLayout.CellSize = UDim2.new(0, 75, 0, 75)
+UIGridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
+UIGridLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIGridLayout.Parent = LeftMenuFrame
+
+-- 3. Instantiating Individual Grid Buttons (Left Side Elements)
+-- Shop Button (Pink/Magenta Gradient)
+local ShopBtn = createGridButton("ShopBtn", "SHOP", Color3.fromRGB(255, 60, 120), Color3.fromRGB(180, 20, 70), LeftMenuFrame)
+ShopBtn.LayoutOrder = 1
+
+-- Rebirth Button (Cyan/Blue Gradient)
+local RebirthBtn = createGridButton("RebirthBtn", "REBIRTH", Color3.fromRGB(60, 180, 255), Color3.fromRGB(20, 80, 180), LeftMenuFrame)
+RebirthBtn.LayoutOrder = 2
+
+-- Trails Button (Purple Gradient)
+local TrailsBtn = createGridButton("TrailsBtn", "TRAILS", Color3.fromRGB(160, 60, 255), Color3.fromRGB(90, 20, 160), LeftMenuFrame)
+TrailsBtn.LayoutOrder = 3
+
+-- Worlds Button (Green Gradient)
+local WorldsBtn = createGridButton("WorldsBtn", "WORLDS", Color3.fromRGB(60, 220, 100), Color3.fromRGB(20, 130, 50), LeftMenuFrame)
+WorldsBtn.LayoutOrder = 4
+
+
+-- 4. Sample Button Functionality
+ShopBtn.MouseButton1Click:Connect(function()
+	print("Shop menu opened!")
+	-- Insert your framework open/close window animations here
+end)
+
+RebirthBtn.MouseButton1Click:Connect(function()
+	print("Rebirth prompt triggered!")
+end)
