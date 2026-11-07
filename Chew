@@ -1,0 +1,259 @@
+-- LocalScript inside StarterGui
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local ChewEvent = ReplicatedStorage:WaitForChild("ChewEvent")
+local BuyGumEvent = ReplicatedStorage:WaitForChild("BuyGumEvent")
+local RebirthEvent = ReplicatedStorage:WaitForChild("RebirthEvent")
+local CatalogFolder = ReplicatedStorage:WaitForChild("GumCatalog")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "HyperUltraGumHUD"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- Premium High-Fidelity UI Styling Toolkit
+local function applyNeonStroke(parent, color, thickness)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = color or Color3.fromRGB(0, 255, 200)
+	stroke.Thickness = thickness or 3
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = parent
+	return stroke
+end
+
+local function applyRounding(parent, radius)
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, radius or 16)
+	corner.Parent = parent
+end
+
+local function applyPremiumGradient(parent, keypoints)
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new(keypoints)
+	gradient.Rotation = 45
+	gradient.Parent = parent
+end
+
+local function createPolishedButtonJuice(button, primaryColor, secondaryColor)
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset + 6, 0, button.Size.Y.Offset + 6)}):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.15, Enum.EasingStyle.Quad), {Size = UDim2.new(0, button.Size.X.Offset - 6, 0, button.Size.Y.Offset - 6)}):Play()
+	end)
+	button.MouseButton1Down:Connect(function()
+		button.Rotation = 4
+		TweenService:Create(button, TweenInfo.new(0.05, Enum.EasingStyle.Quad), {ImageColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+	end)
+	button.MouseButton1Up:Connect(function()
+		button.Rotation = 0
+		TweenService:Create(button, TweenInfo.new(0.05, Enum.EasingStyle.Quad), {ImageColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+	end)
+end
+
+-- ==========================================
+-- 1. PROGRESSION STATUS OVERLAY HARS
+-- ==========================================
+local TopFrame = Instance.new("Frame", ScreenGui)
+TopFrame.Size = UDim2.new(0, 420, 0, 40)
+TopFrame.Position = UDim2.new(0.5, -210, 0, 20)
+TopFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+applyRounding(TopFrame, 10)
+applyNeonStroke(TopFrame, Color3.fromRGB(255, 0, 130), 2.5)
+
+local ProgressBar = Instance.new("Frame", TopFrame)
+ProgressBar.Size = UDim2.new(0.05, 0, 1, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+applyRounding(ProgressBar, 10)
+applyPremiumGradient(ProgressBar, {
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 128)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 120, 0))
+})
+
+local ProgressText = Instance.new("TextLabel", TopFrame)
+ProgressText.Size = UDim2.new(1, 0, 1, 0)
+ProgressText.BackgroundTransparency = 1
+ProgressText.Text = "LOADING STATS..."
+ProgressText.Font = Enum.Font.FredokaOne
+ProgressText.TextColor3 = Color3.fromRGB(255, 255, 255)
+ProgressText.TextSize = 15
+ProgressText.TextStrokeTransparency = 0
+
+-- ==========================================
+-- 2. DYNAMIC FLOATING NOTIFIERS
+-- ==========================================
+local function triggerGreatPopup()
+	local pop = Instance.new("TextLabel", ScreenGui)
+	pop.Size = UDim2.new(0, 250, 0, 60)
+	pop.Position = UDim2.new(0.5, math.random(-140, 40), 0.35, math.random(-60, 60))
+	pop.BackgroundTransparency = 1
+	pop.Text = "GREAT!"
+	pop.Font = Enum.Font.FredokaOne
+	pop.TextSize = 38
+	pop.TextColor3 = Color3.fromRGB(0, 255, 255)
+	
+	local stroke = Instance.new("UIStroke", pop)
+	stroke.Thickness = 4
+	stroke.Color = Color3.fromRGB(0,0,0)
+	
+	TweenService:Create(pop, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Position = pop.Position - UDim2.new(0, 0, 0, 80),
+		TextSize = 48
+	}):Play()
+	
+	task.delay(0.38, function() pop:Destroy() end)
+end
+
+-- ==========================================
+-- 3. SIDE HUD MENU BUTTON CONTROLS
+-- ==========================================
+local SideContainer = Instance.new("Frame", ScreenGui)
+SideContainer.Size = UDim2.new(0, 220, 0, 100)
+SideContainer.Position = UDim2.new(0, 30, 0.5, -50)
+SideContainer.BackgroundTransparency = 1
+
+local SideLayout = Instance.new("UIListLayout", SideContainer)
+SideLayout.FillDirection = Enum.FillDirection.Horizontal
+SideLayout.Padding = UDim.new(0, 20)
+
+local ShopBtn = Instance.new("TextButton", SideContainer)
+ShopBtn.Size = UDim2.new(0, 95, 0, 95)
+ShopBtn.Text = "SHOP"
+ShopBtn.Font = Enum.Font.FredokaOne
+ShopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShopBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+ShopBtn.TextSize = 18
+applyRounding(ShopBtn, 20)
+applyNeonStroke(ShopBtn, Color3.fromRGB(0, 255, 255), 3.5)
+applyPremiumGradient(ShopBtn, {ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 230, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 70, 200))})
+createPolishedButtonJuice(ShopBtn)
+
+local RebirthBtn = Instance.new("TextButton", SideContainer)
+RebirthBtn.Size = UDim2.new(0, 95, 0, 95)
+RebirthBtn.Text = "REBIRTH"
+RebirthBtn.Font = Enum.Font.FredokaOne
+RebirthBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RebirthBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+RebirthBtn.TextSize = 15
+applyRounding(RebirthBtn, 20)
+applyNeonStroke(RebirthBtn, Color3.fromRGB(180, 50, 255), 3.5)
+applyPremiumGradient(RebirthBtn, {ColorSequenceKeypoint.new(0, Color3.fromRGB(200, 50, 255)), ColorSequenceKeypoint.new(1, Color3.fromRGB(90, 10, 180))})
+createPolishedButtonJuice(RebirthBtn)
+
+-- ==========================================
+-- 4. 100x COOLER CYBER GUM CATALOG SHOP PANEL
+-- ==========================================
+local ShopPanel = Instance.new("Frame", ScreenGui)
+ShopPanel.Name = "CyberShop"
+ShopPanel.Size = UDim2.new(0, 400, 0, 440)
+ShopPanel.Position = UDim2.new(0.5, -200, 0.5, -220)
+ShopPanel.BackgroundColor3 = Color3.fromRGB(11, 10, 16)
+ShopPanel.Visible = false
+applyRounding(ShopPanel, 24)
+applyNeonStroke(ShopPanel, Color3.fromRGB(0, 255, 200), 3)
+
+local Header = Instance.new("TextLabel", ShopPanel)
+Header.Size = UDim2.new(1, 0, 0, 60)
+Header.Text = "CRYPTO GUM VAULT"
+Header.Font = Enum.Font.FredokaOne
+Header.TextColor3 = Color3.fromRGB(0, 255, 180)
+Header.TextSize = 25
+Header.BackgroundTransparency = 1
+
+local ScrollFrame = Instance.new("ScrollingFrame", ShopPanel)
+ScrollFrame.Size = UDim2.new(1, -30, 1, -85)
+ScrollFrame.Position = UDim2.new(0, 15, 0, 70)
+ScrollFrame.BackgroundTransparency = 1
+ScrollFrame.ScrollBarThickness = 6
+ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 200)
+
+local ScrollLayout = Instance.new("UIListLayout", ScrollFrame)
+ScrollLayout.Padding = UDim.new(0, 12)
+
+-- Efficient dynamic layout assembler loading the 100 variations generated by the server
+local itemsData = CatalogFolder:GetChildren()
+table.sort(itemsData, function(a, b)
+	return (a:FindFirstChild("Cost") and a.Cost.Value or 0) < (b:FindFirstChild("Cost") and b.Cost.Value or 0)
+end)
+
+for _, folder in ipairs(itemsData) do
+	local name = folder.Name
+	local cost = folder.Cost.Value
+	local mult = folder.Multiplier.Value
+	local color = folder.Color.Value
+
+	local row = Instance.new("Frame", ScrollFrame)
+	row.Size = UDim2.new(1, -10, 0, 65)
+	row.BackgroundColor3 = Color3.fromRGB(20, 21, 30)
+	applyRounding(row, 12)
+	applyNeonStroke(row, Color3.fromRGB(40, 44, 60), 1.5)
+
+	local iconSquare = Instance.new("Frame", row)
+	iconSquare.Size = UDim2.new(0, 45, 0, 45)
+	iconSquare.Position = UDim2.new(0, 10, 0.5, -22.5)
+	iconSquare.BackgroundColor3 = color
+	applyRounding(iconSquare, 10)
+	applyNeonStroke(iconSquare, Color3.fromRGB(0,0,0), 2)
+
+	local info = Instance.new("TextLabel", row)
+	info.Size = UDim2.new(0.5, 0, 1, 0)
+	info.Position = UDim2.new(0, 68, 0, 0)
+	info.BackgroundTransparency = 1
+	info.Text = "<b>" .. name .. "</b>\nCost: " .. cost .. " | Mult: x" .. mult
+	info.RichText = true
+	info.Font = Enum.Font.FredokaOne
+	info.TextColor3 = Color3.fromRGB(255, 255, 255)
+	info.TextSize = 13
+	info.TextXAlignment = Enum.TextXAlignment.Left
+
+	local buy = Instance.new("TextButton", row)
+	buy.Size = UDim2.new(0.28, 0, 0.65, 0)
+	buy.Position = UDim2.new(0.69, 0, 0.175, 0)
+	buy.Text = "BUY"
+	buy.Font = Enum.Font.FredokaOne
+	buy.TextColor3 = Color3.fromRGB(255, 255, 255)
+	buy.BackgroundColor3 = Color3.fromRGB(0, 200, 115)
+	applyRounding(buy, 10)
+
+	buy.MouseButton1Click:Connect(function()
+		local ok = BuyGumEvent:InvokeServer(name)
+		if ok then
+			buy.Text = "EQUIPPED"
+			buy.BackgroundColor3 = Color3.fromRGB(70, 75, 85)
+		else
+			buy.Text = "POOR!"
+			buy.BackgroundColor3 = Color3.fromRGB(230, 50, 80)
+			task.wait(0.7)
+			buy.Text = "BUY"
+			buy.BackgroundColor3 = Color3.fromRGB(0, 200, 115)
+		end
+	end)
+end
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, ScrollLayout.AbsoluteContentSize.Y + 30)
+
+-- ==========================================
+-- 5. HUD CONNECTORS & RENDER LOOPS
+-- ==========================================
+ShopBtn.MouseButton1Click:Connect(function() ShopPanel.Visible = not ShopPanel.Visible end)
+
+RebirthBtn.MouseButton1Click:Connect(function()
+	local ok = RebirthEvent:InvokeServer()
+	if ok then triggerGreatPopup() end
+end)
+
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		ChewEvent:FireServer()
+		if math.random(1, 4) == 2 then triggerGreatPopup() end
+	end
+end)
+
+task.spawn(function()
+	while task.wait(0.1) do
+		local chewsVal = LocalPlayer:FindFirstChild("Chews") and LocalPlayer.Chews.Value or 0
