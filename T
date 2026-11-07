@@ -1,0 +1,54 @@
+-- LocalScript placed inside StarterPlayer > StarterPlayerScripts
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- 1. Create the ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FollowRobloxGui"
+screenGui.ResetOnSpawn = false -- Keeps the UI visible even if the player dies
+screenGui.IgnoreGuiInset = true -- Prevents Roblox top-bar from pushing the UI down
+
+-- 2. Create a background banner/frame
+local frame = Instance.new("Frame")
+frame.Name = "Banner"
+frame.Size = UDim2.new(0.3, 0, 0.08, 0) -- 30% width of screen, 8% height
+frame.Position = UDim2.new(0.35, 0, 0.05, 0) -- Centered at the top of the screen
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Dark sleek background
+frame.BackgroundTransparency = 0.2 -- Slightly see-through
+frame.Parent = screenGui
+
+-- Rounded corners for the frame
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = frame
+
+-- Clean white border stroke
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Thickness = 2
+uiStroke.Color = Color3.fromRGB(255, 255, 255)
+uiStroke.Transparency = 0.5
+uiStroke.Parent = frame
+
+-- 3. Create the Text Label
+local textLabel = Instance.new("TextLabel")
+textLabel.Name = "FollowText"
+textLabel.Size = UDim2.new(1, 0, 1, 0) -- Fills the entire frame
+textLabel.BackgroundTransparency = 1 -- Hidden label background
+textLabel.Text = "Follow @roblox"
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- White text
+textLabel.Font = Enum.Font.GothamBold -- Modern bold font
+textLabel.TextScaled = true -- Scaling text automatically for mobile vs PC
+
+-- Padding to keep the text from hitting the very edges
+local uiPadding = Instance.new("UIPadding")
+uiPadding.PaddingTop = UDim.new(0.2, 0)
+uiPadding.PaddingBottom = UDim.new(0.2, 0)
+uiPadding.PaddingLeft = UDim.new(0.05, 0)
+uiPadding.PaddingRight = UDim.new(0.05, 0)
+uiPadding.Parent = textLabel
+
+textLabel.Parent = frame
+
+-- 4. Parent the ScreenGui to the Player's screen
+screenGui.Parent = playerGui
